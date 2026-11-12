@@ -1,6 +1,7 @@
 program BibliotecaAbierta;
 
 uses sysutils;
+uses crt;
 
 (*
     podriamos usar leer, que solo lee un caracter, y hace que lea mientras caracter <> , porque eso es lo que separa cada palabra, aunque no podriamos definir bien que dato es cada uno    
@@ -27,9 +28,10 @@ type
 var
     miArchivo: text;
     biblioteca: tArchivoBiblioteca;
-    Aux: tLibro;
-    filtro_autor: string;
-    opcion, posicion, cod_ingresante, libros_encontrados: integer;
+    Aux: tLibro; //se usa como local en cada opcion
+    filtro_autor: string; 
+    opcion, posicion, cod_ingresante, libros_encontrados : integer;
+    
 
 //---------------------------------------------------------------------------------
 
@@ -511,6 +513,94 @@ end;
 
 //------------------------------------------------------------------------
 
+//procedure opcionIngresar(var biblioteca: tArchivoBiblioteca);
+(*
+    que hace: pide un codigo y, si no esta registrado (ni de alta ni de baja), pide el resto de los datos y lo ingresa
+    pre: biblioteca = b, cerrado
+    post: biblioteca = b', con un ejemplar mas si el codigo no estaba en b; sino b' = b
+
+var
+    cod, pos: integer;
+    aux: tLibro;
+begin
+    reset(biblioteca);
+    cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea ingresar'); //devuelve un positivo sin tener una cota superior
+    posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
+    if posicion = -1 then
+    begin
+        ingresoNuevoLibro(biblioteca, cod_ingresante); //pedira todo lo necesario para ingresar un nuevo libro
+    end
+        else
+        begin
+            writeln('Ese codigo ya esta registrado');
+            if (confirma('¿Desea editar el libro asociado a ese codigo?')) then
+            begin
+                seek(biblioteca, posicion);
+                read(biblioteca, Aux);
+                if Aux.disponible then
+                begin
+                    editarRegistro(Aux); // a prori el cabezal ya esta posicionado en donde debe modificar
+                    seek(biblioteca, posicion);
+                    write(biblioteca, Aux);
+                end
+            end;
+        end;
+    close(biblioteca);
+*)
+                
+
+//------------------------------------------------------------------------
+
+//rocedure opcionModificar(var biblioteca: tArchivoBiblioteca);
+(*
+    que hace: pide un codigo y, si el ejemplar existe y esta de alta, permite modificar sus datos (menos el codigo)
+    pre: biblioteca = b, cerrado
+    post: biblioteca = b'; solo cambia el registro elegido, y solo si estaba de alta
+*)
+
+//------------------------------------------------------------------------
+
+//procedure cambiarEstado(var biblioteca: tArchivoBiblioteca);
+(*
+    que hace: da de alta (activar = verdadero) o de baja (activar = falso) un ejemplar existente
+    pre: biblioteca = b, cerrado; activar = a
+    post: biblioteca = b'; si el codigo existe y su estado era distinto de a, ahora disponible = a; sino b' = b
+*)
+
+//------------------------------------------------------------------------
+
+//procedure opcionMostrar(var biblioteca: tArchivoBiblioteca);
+(*
+    que hace: pide un codigo y muestra el ejemplar, este de alta o de baja
+    pre: biblioteca = b, cerrado
+    post: biblioteca = b' = b
+*)
+
+//------------------------------------------------------------------------
+
+//procedure listarPorAutor(var biblioteca:tArchivoBiblioteca; alta: boolean);
+(*
+    que hace: pide un autor y muestra los ejemplares dados de alta de ese autor
+    pre: biblioteca = b, cerrado
+    post: biblioteca = b' = b
+*)
+
+//------------------------------------------------------------------------
+
+//procedure listarPorEstado(var biblioteca:tArchivoBiblioteca; baja: Boolean);
+(*
+    que hace: muestra los ejemplares dados de alta (alta = verdadero) o de baja (alta = falso)
+    pre: biblioteca = b, cerrado; alta = a
+    post: biblioteca = b' = b
+*)
+
+//------------------------------------------------------------------------
+
+
+
+
+//------------------------------------------------------------------------
+
 procedure importar(var miArchivo: text; var biblioteca: tArchivoBiblioteca);
 (*
     que hace: importa y clasifica la informacion de un archivo tipo texto a otro archivo de tLibro
@@ -522,10 +612,8 @@ var
     descarte, aux_cadena: string;
     code, posicion, registrados: integer;
 begin
-    assign(biblioteca, RUTA_BIBLIOTECA);
-    reset(biblioteca);
     registrados := 0;
-    readln(miArchivo, descarte);   // descarta la cabecera, UNA sola vez
+    readln(miArchivo, descarte);   // descarta la cabecera, UNA sola ve
     while not eof(miArchivo) do
     begin
         aux_cadena := ArmarCampo(miArchivo);
@@ -552,8 +640,6 @@ begin
 
         readln(miArchivo, descarte);   // consume el fin de línea de cada registro
     end;
-    close(biblioteca);
-    close(miArchivo);
     if registrados > 0 then
         writeln('Cantidad de ejemplares omitidos por repeticion de codigo: ', registrados);
 end;
@@ -561,19 +647,25 @@ end;
 //---------------------------------------------------------------------------------
 
 begin
-    if not(FileExists(RUTA_BIBLIOTECA)) then //comprobamos primero que no exista y recien ahi creamos, sino siempre q se ejecute va a crearlo y sobreescribir lo anterior
-    begin
-      assign(biblioteca, RUTA_BIBLIOTECA); 
-      rewrite(biblioteca); 
-      close(biblioteca);
-    end;
 
     if FileExists(CSV) then
     begin
+        if not(FileExists(RUTA_BIBLIOTECA)) then //comprobamos primero que no exista y recien ahi creamos, sino siempre q se ejecute va a crearlo y sobreescribir lo anterior
+        begin
+            assign(biblioteca, RUTA_BIBLIOTECA); 
+            rewrite(biblioteca);  
+        end
+        else
+        begin
+            assign(biblioteca, RUTA_BIBLIOTECA);
+            reset(biblioteca);
+        end;
         assign(miArchivo, CSV); 
         reset(miArchivo);
-        importar(miArchivo, biblioteca); // importar(fuente, destino)          
+        importar(miArchivo, biblioteca); // importar(fuente, destino)     
     end;
+    close(miArchivo);     
+    close(biblioteca);
     repeat
         MostrarMenu(opcion); 
         case opcion of

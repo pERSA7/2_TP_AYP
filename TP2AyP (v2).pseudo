@@ -690,3 +690,26 @@ Inicio
     fin si
 
 Fin
+
+//-----------------------------------------------------------------
+
+procedimiento Exportar(E biblioteca: tArchivoBiblioteca; S Biblioteca_Exportada: tArchivoBiblioteca)
+(*
+    que hace: Exporta los datos de la biblioteca a un archivo de texto
+    pre: biclioteca = b, bilbioteca debe venir abierto
+    post: Biblioteca_Exportada = be    
+*)
+Const
+Tipos
+Var
+    miArchivo: tTexto
+    aux_registro: tLibro
+Inicio
+    posicionarse(biblioteca, 1)
+    si no(existeArchivo(RUTA_EXPORTACION)) entonces
+        crear(Biblioteca_Exportada, RUTA_EXPORTACION)
+    mientras no(esFinArchivo(biblioteca))hacer
+        leer(biblioteca, aux_registro)
+        escribir(Biblioteca_Exportada, concatena(aux_registro.codigo, ",", aux_registro.titulo, ",", aux_registro.autor, ",", aux_registro.fechaPublicacion.dia, "/", aux_registro.fechaPublicacion.mes, "/", aux_registro.fechaPublicacion.ano, ",", aux_registro.cantDisponible, ",", aux_registro.precio, ",", aux_registro.disponible))
+    fin mientras
+Fin
