@@ -642,6 +642,7 @@ begin
     end;
     if registrados > 0 then
         writeln('Cantidad de ejemplares omitidos por repeticion de codigo: ', registrados);
+        
 end;
 
 //---------------------------------------------------------------------------------
