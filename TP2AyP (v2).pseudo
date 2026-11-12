@@ -1,0 +1,692 @@
+(*
+    podriamos usar leer, que solo lee un caracter, y hace que lea mientras caracter <> , porque eso es lo que separa cada palabra, aunque no podriamos definir bien que dato es cada uno    
+*)
+CONST
+    CSV = 'C:\Users\maxim\OneDrive\AyP proyects\biblioteca.csv' 
+    RUTA_BIBLIOTECA = 'C:\Users\maxim\OneDrive\AyP proyects\biblioteca.dat'
+    ANO_ACTUAL = 2026 //se debe actualizar cada año
+Tipos
+    tRegFecha = registro
+                dia: [1..31]
+                mes: [1..12]
+                ano: [1..ANO_ACTUAL]
+                fin registro
+    tLibro = registro
+                    Codigo: entero
+                    titulo: cadena
+                    autor: cadena
+                    fechaPublicacion: tRegFecha
+                    cantDisponible: entero
+                    precio: real
+                    disponible: logico
+                fin registro
+    tArchivoBiblioteca = archivo de tLibro
+Var
+    miArchivo: tTexto
+    biblioteca: tArchivoBiblioteca
+    Aux: tLibro
+    filtro_autor: cadena
+    opcion, posicion, cod_ingresante, libros_encontrados: entero
+inicio
+    si no(existeArchivo(RUTA_BIBLIOTECA))
+        crear(biblioteca, RUTA_BIBLIOTECA)
+    fin si        
+    si existeArchivo(CSV) entonces
+        importar(biblioteca, miArchivo, RUTA_BIBLIOTECA, CSV) // importar(fuente, destino)          
+    fin si
+    repetir
+        MostrarMenu(opcion)
+        segun opcion hacer
+            1: //opcion de ingresar. la idea es que cada opcion sea un modulo, y que ese sea quien abra y cierre el archivo
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            cod_ingresante <- EnteroPositivo("ingrese el codigo del libro que desea ingresar") //devuelve un positivo sin tener una cota superior
+            posicion <- buscar(biblioteca, 0, tamaño(biblioteca) - 1, cod_ingresante)
+            si posicion = -1 entonces
+                ingresoNuevoLibro(biblioteca, cod_ingresante) //pedira todo lo necesario para ingresar un nuevo libro
+            sino
+                mostrar("Ese codigo ya esta registrado")
+                si (confirma("¿Desea editar el libro asociado a ese codigo?")) entonces // posicionarse(biblioteca, posicion).disponible no estaria devolviendo el registro
+                    posicionarse(biblioteca, posicion)
+                    leer(biblioteca, Aux)
+                    si Aux.disponible entonces
+                        editarRegistro(Aux) // a prori el cabezal ya esta posicionado en donde debe modificar
+                        posicionarse(biblioteca, posicion)
+                        escribir(biblioteca, Aux)
+                fin si        
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+            2: //opcion de modificar
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            cod_ingresante <- EnteroPositivo("ingrese el codigo del libro que desea modificar")
+            posicion <- buscar(biblioteca, 0, tamaño(biblioteca) - 1, cod_ingresante)
+            si posicion <> -1 entonces
+                posicionarse(biblioteca, posicion)
+                leer(biblioteca, Aux)
+                si Aux.disponible entonces  
+                    editarRegistro(Aux) //edita los campos de aux en memoria
+                    posicionarse(biblioteca, posicion) // devuelve el puntero a la pos original
+                    escribir(biblioteca, Aux) // escribe aux actualizado en el archivo
+                fin si
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+            3: //opcion de eliminar
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            cod_ingresante <- EnteroPositivo("ingrese el codigo del libro que desea dar de baja")
+            posicion <- buscar(biblioteca, 0, tamaño(biblioteca) - 1, cod_ingresante)
+            si posicion <> -1 entonces
+                posicionarse(biblioteca, posicion)
+                leer(biblioteca, Aux)
+                si Aux.disponible entonces
+                    Aux.disponible <- falso
+                    posicionarse(biblioteca, posicion) 
+                    escribir(biblioteca, Aux) //no llamamos a editarRegistro, sino que escribe directamente 
+                sino
+                    mostrar("El libro ya se encuentra dado de baja")
+                fin si
+            sino
+                mostrar("El libro no se encuentra registrado")
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+            4: //opcion de activar ejemplar
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            cod_ingresante <- EnteroPositivo("ingrese el codigo del libro que desea dar de alta")
+            posicion <- buscar(biblioteca, 0, tamaño(biblioteca) - 1, cod_ingresante)
+            si posicion <> -1 entonces
+                posicionarse(biblioteca, posicion)
+                leer(biblioteca, Aux)
+                si no(Aux.disponible) entonces
+                    Aux.disponible <- verdadero
+                    posicionarse(biblioteca, posicion) 
+                    escribir(biblioteca, Aux) // aca igual, escribimos directamente 
+                sino
+                    mostrar("El libro ya esta dado de alta")
+                fin si
+            sino
+                mostrar("El libro no se encuentra registrado")
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+            5: //mostrar ejemplar
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            cod_ingresante <- EnteroPositivo("ingrese el codigo del libro que desea ver")
+            posicion <- buscar(biblioteca, 0, tamaño(biblioteca) - 1, cod_ingresante)
+            si posicion <> -1 entonces
+                posicionarse(biblioteca, posicion)
+                leer(biblioteca, Aux)
+                mostrarRegistro(Aux)
+            sino
+                mostrar("El libro no se encuentra registrado")
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+            6: //muestra libros por autor
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            mostrar("ingrese el nombre del autor por el cual se debe filtrar")
+            ingresar(filtro_autor)
+            posicionarse(biblioteca, 1)
+            libros_encontrados <- 0
+            mientras no(esFinArchivo(biblioteca)) hacer
+                leer(biblioteca, Aux)
+                si Aux.autor = filtro_autor entonces
+                    mostrarRegistro(Aux)
+                    libros_encontrados <- libros_encontrados + 1
+                fin si
+            fin mientras
+            si libros_encontrados = 0 entonces
+                mostrar("No se encontraron libros registrados de ese autor")
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+            7: //muestra llibros dados de alta
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            posicionarse(biblioteca, 1)
+            libros_encontrados <- 0
+            mientras no(esFinArchivo(biblioteca)) hacer
+                leer(biblioteca, Aux)
+                si Aux.disponible entonces
+                    mostrarRegistro(Aux)
+                    libros_encontrados <- libros_encontrados + 1
+                fin si
+            fin mientras
+            si libros_encontrados = 0 entonces
+                mostrar("No se encontraron libros registrados que esten dados de alta")
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+            8: //muestra libros dados de baja
+            abrir(biblioteca, RUTA_BIBLIOTECA)
+            posicionarse(biblioteca, 1)
+            libros_encontrados <- 0
+            mientras no(esFinArchivo(biblioteca)) hacer
+                leer(biblioteca, Aux)
+                si no(Aux.disponible) entonces
+                    mostrarRegistro(Aux)
+                    libros_encontrados <- libros_encontrados + 1
+                fin si
+            fin mientras
+            si libros_encontrados = 0 entonces
+                mostrar("No se encontraron libros registrados que esten dados de baja")
+            fin si
+            cerrar(RUTA_BIBLIOTECA)
+        fin segun
+    hasta opcion = 0
+
+fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Procedimiento importar (E/S biblioteca: tArchivoBiblioteca; E miArchivo: tTexto, RUTA_BIBLIOTECA, CSV: cadena; )
+(*
+    que hace: importa y clasifica la informacion de un archivo tipo texto a otro archivo de tLibro de modo que quede organizado por codigo
+    pre: miArchivo = m, biblioteca = b
+    post: biblioteca = b'   
+*)
+Const
+Tipos
+Var
+    aux_registro: tLibro
+    descarte, aux_cadena: cadena
+    registrados: entero
+Inicio
+    registrados <- 0
+    abrir(miArchivo, CSV)
+    abrir(biblioteca, RUTA_BIBLIOTECA)
+    posicionarse(miArchivo, 1)
+    posicionarse(biblioteca, 1)
+    leerln(miArchivo, descarte) // descartaria la primer fila
+    mientras no(esFinArchivo(miArchivo)) hacer
+        aux_registro.codigo <- ValorNumerico(ArmarCampo(miArchivo))
+        aux_registro.titulo <- ArmarCampo(miArchivo)
+        aux_registro.autor <- ArmarCampo(miArchivo)
+        ArmarFecha(miArchivo, aux_registro.fechaPublicacion)
+        aux_registro.CantDisponible <- ValorNumerico(ArmarCampo(miArchivo))
+        aux_registro.precio <- 0
+        aux_registro.disponible <- (ArmarCampo(miArchivo)) = "true"
+        si buscar(biblioteca, 0, tamaño(biblioteca) - 1, aux_registro.codigo) = -1 entonces
+            insertarProducto(biblioteca, aux_registro)
+        sino
+            registrados <- registrados + 1
+        fin si
+        leerln(miArchivo, descarte) // consume el fin de línea de cada registro
+    fin mientras
+    
+    cerrar(RUTA_BIBLIOTECA)
+    cerrar(miArchivo)
+    si registrados > 0 entonces
+        mostrar(concatena("Cantidad de Ejemplares omitidos por repeticion de codigo: ", registrados))
+    fin si
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion ArmarCampo(E miArchivo: tTexto): cadena
+(*
+    que hace: recorre un archivo de tipo texto concatenando caracteres distintos de coma en una variable de tipo cadena
+    pre: miArchivo = m, m debe tener una cabezera en la primer fila, m debe venir abierto, CSV = c, 
+    post: ArmarCampo = a
+*)
+Const
+Tipos
+Var
+    caracter_leido: caracter
+    aux_cadena, descarte: cadena
+Inicio
+    leerln(miArchivo, descarte) //descarta la primer fila
+    caracter_leido <- ''
+    aux_cadena <- ""
+    mientras no(esFinLinea(miArchivo)) y (caracter_leido <> ',') y (caracter_leido <> '/') hacer
+        leer(miArchivo, caracter_leido)
+        si (caracter_leido <> ',') y (caracter_leido <> '/') entonces
+            aux_cadena <- concatena(aux_cadena, caracter_leido)
+        fin si
+    fin mientras
+    ArmarCampo <- aux_cadena
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+procedimiento ArmarFecha(E miArchivo: tTexto; S aux_registro.fechaPublicacion: tLibro)
+(*
+    que hace: arma el campo de la fecha de publicacion de un registro tipo tLibro
+    pre: miArchivo = m, m debe venir abierto
+    post: aux_registro.fechaPublicacion = a   
+*)
+Const
+Tipos
+Var
+Inicio
+    aux_registro.fechaPublicacion.dia <- ValorNumerico(ArmarCampo(miArchivo)) //trasnformar a entero
+    aux_registro.fechaPublicacion.mes <- ValorNumerico(ArmarCampo(miArchivo))
+    aux_registro.fechaPublicacion.ano <- ValorNumerico(ArmarCampo(miArchivo))
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+procedimiento MostrarMenu(S opcion: entero)
+(*
+    que hace: muestra el menu disponible para que el usuario pueda elegir que quiere hacer
+    pre: -
+    post: opcion = p, 1<=p<=8    
+*)
+Const
+Tipos
+Var
+Inicio
+    mostrar("=============================================")
+    mostrar("1: Ingresar un ejemplar")
+    mostrar("2: Modificar un ejemplar")
+    mostrar("3: Dar de baja un ejemplar")
+    mostrar("4: Dar de alta un ejemplar")
+    mostrar("5: Mostrar un ejemplar por su código")
+    mostrar("6: Mostrar ejemplares por autor")
+    mostrar("7: Mostrar ejemplares dados de alta")
+    mostrar("8: Mostrar ejemplares dados de baja")
+    mostrar("=============================================")
+    opcion <- enteroEnRango(1, 8, "Seleccione la opcion que desea llevar a cabo")
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+procedimiento editarRegistro(E/S reg: tLibro)
+(*
+  que hace: permite modificar los campos de un libro (excepto codigo y disponible)
+  pre: reg = r
+  post: reg = r', r'.codigo = r.codigo; el resto de los campos tiene el valor que eligió el usuario
+*)
+var 
+    campo: entero
+inicio
+    repetir
+        mostrar("1: Titulo")
+        mostrar("2: Autor ")
+        mostrar("3: Fecha")
+        mostrar("4: Cantidad")
+        mostrar("5: Precio")
+        campo <- enteroEnRango(1, 5, "¿Que campo desea modificar?")
+        pedirCampo(reg, campo)
+    hasta no(confirma("¿Desea modificar otro campo?"))
+fin
+
+//---------------------------------------------------------------------------------
+
+procedimiento pedirCampo(E/S reg: tLibro; E campo: entero)
+(*
+  que hace: pide al usuario el valor del campo indicado y lo asigna en reg
+  pre: reg = r, campo = c, 1 <= c <= 6
+  post: reg = r', igual a r salvo el campo c, que tiene el valor ingresado;
+        r'.codigo = r.codigo
+*)
+Inicio
+    segun campo hacer
+        1: reg.titulo <- ingrese_cadena("ingrese el titulo")
+        2: reg.autor <- ingrese_cadena("ingrese el autor")
+        3: reg.fechaPublicacion <- ingrese_fecha("Ingrese el año", "Ingrese el mes", "Ingrese el dia")
+        4: reg.cantDisponible <- EnteroPositivo("Ingrese la cantidad disponible")
+        5: reg.precio <- RealPositivo("Ingrese el precio de reposicion")
+    fin segun
+Fin
+
+//---------------------------------------------------------------------------------
+
+funcion enteroEnRango( E tope1: entero , E tope2: entero  E mensaje: cadena ): entero
+{* Qué hace: Retorna un valor entre un ramgo de valores
+  Pre: tope1= T1, tope2= T2, T1 <= T2, mensaje = M
+  Pos: enteroEnRango = E y E >= T1 y E<=T2 *} 
+Var
+    n: entero
+Inicio
+    repetir
+        mostrar (mensaje)
+        ingresar(n)
+    hasta n >= tope1 y n<= tope2 
+    enteroEnRango <- n
+Fin 
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion EnteroPositivo(E msg: cadena): entero
+(*
+    que hace: devuelve un numero >= 0
+    pre: msg = m
+    post: EnteroPositivo = e, e >= 0    
+*)
+Const
+Tipos
+Var
+    numero: entero
+Inicio
+    repetir
+        mostrar(msg)
+        ingresar(numero)
+    hasta numero >= 0
+    EnteroPositivo <- numero
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion RealPositivo(E msg: cadena): entero
+(*
+    que hace: devuelve un numero >= 0
+    pre: msg = m
+    post: EnteroPositivo = e, e >= 0    
+*)
+Const
+Tipos
+Var
+    numero: real
+Inicio
+    repetir
+        mostrar(msg)
+        ingresar(numero)
+    hasta numero >= 0
+    EnteroPositivo <- numero
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+procedimiento ingresoNuevoLibro(E/S biblioteca: tArchivoBiblioteca; E codigo: entero)
+(*
+    que hace: solicita al usuario todo lo necesario para llenar un registro de tArchivoBiblioteca y luego inserta ordenadamente por codigo
+    pre: biblioteca = b, codigo = c, c no estaba en b, b debe venir abierto
+    post: biblioteca = b'    
+*)
+Const
+Tipos
+Var
+   aux_registro: tLibro
+   campo: entero
+Inicio
+    aux_registro.codigo <- codigo
+    desde campo <- 1 hasta 5 hacer
+        pedirCampo(aux_registro, campo)
+    fin desde
+    aux_registro.disponible <- verdadero
+    insertarProducto(biblioteca, aux_registro)
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion ingrese_cadena(E msg: cadena): cadena
+(*
+    que hace: permite ingresar una cadena
+    pre: msg = m
+    post: ingrese_cadena = i    
+*)
+Const
+Tipos
+Var
+Inicio
+    mostrar(msg)
+    ingresar(ingrese_cadena)
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion ingrese_fecha(E msg1, msg2, msg3: cadena): tRegFecha
+(*
+    que hace: pide y valida una fecha ingresada por el usuario
+    pre: msg1 = m1, m1 corresponde a año, msg2 = m2, m2 corresponde a mes, msg3 = m3, m3 corresponde a dia
+    post:
+*) 
+Const
+Tipos
+Var
+    anio, mes, dia: entero
+Inicio
+    repetir
+        mostrar(msg1)
+        ingresar(anio)
+        mostrar(msg2)
+        ingresar(mes)
+        mostrar(msg3)
+        ingresar(dia)
+        si no(esFechaValida(dia, mes, anio)) entonces
+        mostrar("Ingrese una fecha valida")
+    hasta esFechaValida(dia, mes, anio)
+    ingrese_fecha.dia <- dia
+    ingrese_fecha.mes <- mes
+    ingrese_fecha.ano <- anio
+    
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion esFechaValida (E dia, mes, anio: entero): logico
+{* Qué hace: Determina si la fecha recibida es válida y retorna Verdadero si lo es o Falso en caso contrario.
+ Pre: dia = D, mes = M y anio = A; A > 0.
+ Pos: esFechaValida = Verdadero si D, M y A corresponden a una fecha válida; en caso contrario, esFechaValida = Falso. *}
+Var
+    maxDias: entero
+Inicio
+    si no esMesValido(mes) entonces
+        esFechaValida <- Falso
+    sino
+        segun mes hacer
+            2:
+                si esBisiesto(anio) entonces
+                    maxDias <- 29
+                sino
+                    maxDias <- 28
+                fin si
+            4, 6, 9, 11:
+                maxDias <- 30
+            sino :
+                maxDias <- 31
+        fin segun
+        esFechaValida <- (dia >= 1 y dia <= maxDias)
+    fin si
+
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion esMesValido ( E mes: entero): logico
+{* Qué hace: Determina si el número de mes recibido corresponde a un mes válido y retorna Verdadero si lo es o Falso en caso contrario.
+ Pre: mes = M.
+ Pos: esMesValida = Verdadero si M pertenece [1..12]; en caso contrario, esMesValida = Falso. *}
+Inicio
+    esMesValido <- (mes >= 1 y mes <= 12)
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion esBisiesto ( E anio: entero ): logico
+{* Qué hace: Determina si el año recibido es bisiesto y retorna Verdadero si lo es o Falso en caso contrario.
+   Pre: anio = A y A > 0.
+   Pos: esBisiesto = Verdadero si A corresponde a un año bisiesto; en caso contrario, esBisiesto = Falso. *}
+
+Inicio
+
+    esBisiesto <- (anio MOD 400 = 0) o ((anio MOD 4 = 0) y (anio MOD 100 <> 0))
+
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion confirma (E msj: cadena): logico
+{* Qué hace: Solicita al usuario una respuesta afirmativa o negativa a partir del mensaje recibido y retorna Verdadero si la respuesta es afirmativa o Falso si es negativa.
+   Pre: msj = M
+   Pos: confirma = Verdadero si el usuario responde 's' o 'S'; confirma = Falso si el usuario responde 'n' o 'N'.*} 
+Var
+    resp: caracter
+Inicio
+    repetir
+        mostrar(msj)
+        ingresar(resp)
+    hasta resp = 's' o resp = 'S' o resp= 'n' o resp = 'N'  
+    confirma <- (resp = 's' o resp = 'S')
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+procedimiento insertarProducto ( E/S arch: tArchivoBiblioteca ; E nuevo: tLibro)
+(*
+ Qué hace: agrega un nuevo registro respetando el orden.
+ Pre: F=Arch, N=nuevo; F está abierto y ordenado.
+ Pos: F=F' y F' esta ordenado y F' = F U {N}
+ *)
+
+Var
+    pos: entero
+    p: tLibro
+    encontroLugar: logico
+
+Inicio
+    pos <- tamaño(arch) - 1
+    encontroLugar <- falso
+    mientras pos >= 0 y no encontroLugar hacer
+        posicionarse (arch, pos)
+        leer(arch, p)
+        si comparar(nuevo,p) < 0 entonces
+            escribir(arch, p)
+            pos <- pos - 1
+        sino
+            encontroLugar <- verdadero
+        fin si
+    fin mientras
+    posicionarse(arch, pos + 1)
+    escribir (arch, nuevo)
+
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion comparar ( E prod1, prod2: tLibro ) : entero
+(*
+ qué hace: Compara dos tArchivoBiblioteca.
+ Pre: P1= prod1, P2=prod2.
+ Pos: comparar=R; R<0 si P1<P2; R=0 si P1=P2; R>0 si P1>P2.
+ *)
+
+Inicio
+    si prod1.codigo = prod2.codigo entonces
+        comparar <- prod1.nro - prod2.nro
+    sino
+        comparar <- prod1.codigo - prod2.codigo
+    fin si
+Fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Funcion ValorNumerico (E; cad: cadena): entero
+(*
+    que hace: recibe una cadena y si todos los caracteres de la misma son digitos del 0 al 9 entonces devuelve su valor numerico, si no devuelve -1
+    pre:    cad = c
+    post: valor numerico = v, v >= 0 si todos los caracteres de c son digitos del 0 al 9, sino v = -1
+*)
+const
+    BASE = 10
+var
+    i, numero, potencia, resultado, digito: entero
+inicio
+    i = 1
+    CodigoError = falso
+    resultado = 0
+    Repetir
+        digito <- ValorDigito(cad[i])
+
+        Si digito = -1 hacer
+            CodigoError = verdadero
+            resultado = -1
+        sino
+            potencia = long(cad) - i
+            numero = digito * (CalcularPotencia(BASE, potencia))
+            resultado = (resultado) + (numero)
+        fin si
+        i = i + 1
+    Hasta ((i > long(cad) o (CodigoError = verdadero)))
+    ValorNumerico <- resultado
+fin funcion
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Funcion CalcularPotencia (E; base, potencia: entero): entero
+(*
+    que hace: multiplica base n cantidad de veces
+    pre: base = b, potencia = p, p >= 0
+    post: CalcularPotencia = c, c = b^p
+*)
+var
+    i, resultado: entero
+inicio
+    resultado = 1
+    desde i <- 1 hasta (potencia) hacer
+        resultado <- resultado * base
+    fin desde
+    CalcularPotencia <- resultado
+fin funcion
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion ValorDigito (E: numero: caracter): entero
+(*
+    que hace: recibe un caracter y si pertenece a los digitos del 0 al 9 devuelve su valor numerico, si no pertenece a ese conjunto devuelve -1
+    pre: numero = n
+    post: ValorDigito = v, v >= 0 si n es un digito del 0 al 9, sino v = -1    
+*)
+inicio
+    segun (numero)
+        "1": ValorDigito = 1
+        "2": ValorDigito = 2
+        "3": valorDigito = 3
+        "4": ValorDigito = 4
+        "5": ValorDigito = 5
+        "6": ValorDigito = 6
+        "7": ValorDigito = 7
+        "8": valorDigito = 8
+        "9": ValorDigito = 9
+        "0": ValorDigito = 0
+        otro: valorDigito = -1
+    fin segun
+fin 
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+procedimiento mostrarRegistro(E reg: tLibro)
+(*
+    que hace: muestra en pantalla los campos de un libro
+    pre: reg = r
+    post: -
+*)
+inicio
+    mostrar("===============================================")
+    mostrar("Código: ", reg.codigo)
+    mostrar("Título: ", reg.titulo)
+    mostrar("Autor: ", reg.autor)
+    mostrar("Fecha Publicacion: ", reg.fechaPublicacion.dia, "/", reg.fechaPublicacion.mes, "/", reg.fechaPublicacion.ano)
+    mostrar("Cant. Disponible: ", reg.cantDisponible)
+    mostrar("Precio: ", reg.precio)
+    si reg.disponible entonces
+        mostrar("Estado: ALTA (Disponible)")
+    sino
+        mostrar("Estado: BAJA")
+    fin si
+    mostrar("===============================================")
+fin
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+funcion buscar(E elementos:tArchivoBiblioteca; E p,f: entero; E elemento: entero ): entero
+(*
+ Qué hace: busca la posición de un elemento en un arreglo.
+ Pre-condición: A=elementos, P=p, F=f, E=elemento; [P..F] ⊆ rango(tLista); A esta ordenada.
+ Pos-condición: buscar = Pos;  Pos = -1 si no el elemento no está,  Pos = i, si A[i] = E
+*)
+
+Var
+    m : entero
+    aux: tLibro
+Inicio
+    si f < p entonces
+        buscar <- -1
+    sino
+        m <- (p+f) div 2
+        posicionarse(elementos, m)
+        leer(elementos, aux)
+        si aux.codigo = elemento entonces
+            buscar <- m
+        sino
+            si elemento < aux.codigo entonces
+                buscar <- buscar(elementos, p, m - 1, elemento)
+            sino
+                buscar <- buscar(elementos, m + 1, f, elemento)
+            fin si
+        fin si
+    fin si
+
+Fin
