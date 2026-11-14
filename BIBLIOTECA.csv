@@ -1,0 +1,31 @@
+codigo,titulo,autor,fecha_publicacion,cantidad_disponible,precio_reposicion,estado
+5012,El principito,Antoine de Saint-Exupery,06/04/1943,8,12500,true
+5078,Don Quijote de la Mancha,Miguel de Cervantes,16/01/1605,3,18500,true
+5034,Cien años de soledad,Gabriel Garcia Marquez,05/06/1967,5,22000,true
+5120,Rayuela,Julio Cortazar,28/06/1963,4,19800,true
+5006,Ficciones,Jorge Luis Borges,01/01/1944,6,14500,true
+5091,Martin Fierro,Jose Hernandez,01/01/1872,2,9500,true
+5155,La ciudad y los perros,Mario Vargas Llosa,01/01/1963,7,17200,true
+5023,Crimen y castigo,Fiodor Dostoievski,01/01/1866,0,16000,false
+5204,Orgullo y prejuicio,Jane Austen,28/01/1813,4,13800,true
+5057,1984,George Orwell,08/06/1949,9,15500,true
+5182,Rebelion en la granja,George Orwell,17/08/1945,3,11200,true
+5041,El tunel,Ernesto Sabato,01/01/1948,5,9800,true
+5113,La invencion de Morel,Adolfo Bioy Casares,01/01/1940,2,11700,false
+5069,Fahrenheit 451,Ray Bradbury,19/10/1953,6,14200,true
+5230,El nombre de la rosa,Umberto Eco,01/01/1980,1,23500,true
+5085,Los miserables,Victor Hugo,03/04/1862,0,21000,false
+5167,Moby Dick,Herman Melville,18/10/1851,3,16800,true
+5009,La metamorfosis,Franz Kafka,01/01/1915,7,8900,true
+5251,El hobbit,J. R. R. Tolkien,21/09/1937,5,17600,true
+5138,Harry Potter y la piedra filosofal,J. K. Rowling,26/06/1997,10,19000,true
+5102,El codigo Da Vinci,Dan Brown,18/03/2003,4,16500,true
+5274,Sapiens,Yuval Noah Harari,01/01/2011,6,24800,true
+5039,Breve historia del tiempo,Stephen Hawking,01/01/1988,2,18200,true
+5196,El alquimista,Paulo Coelho,01/01/1988,8,13000,true
+5071,La sombra del viento,Carlos Ruiz Zafon,01/01/2001,3,17400,true
+5218,Ensayo sobre la ceguera,Jose Saramago,01/01/1995,0,15300,false
+5146,El amor en los tiempos del colera,Gabriel Garcia Marquez,01/01/1985,4,18700,true
+5050,Las aventuras de Tom Sawyer,Mark Twain,01/01/1876,5,11900,true
+5293,Los juegos del hambre,Suzanne Collins,14/09/2008,7,16200,true
+5174,El psicoanalista,John Katzenbach,01/01/2002,2,15800,true
