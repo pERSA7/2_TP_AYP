@@ -1,7 +1,6 @@
 program BibliotecaAbierta;
 
-uses sysutils;
-uses crt;
+uses sysutils, crt;
 
 (*
     podriamos usar leer, que solo lee un caracter, y hace que lea mientras caracter <> , porque eso es lo que separa cada palabra, aunque no podriamos definir bien que dato es cada uno    
@@ -9,6 +8,7 @@ uses crt;
 const
     CSV = 'BIBLIOTECA.csv';
     RUTA_BIBLIOTECA = 'biblioteca.dat';
+    RUTA_EXPORTACION = 'biblioteca_exportada.csv';
 type
     tRegFecha = record
       dia: 1..31;
@@ -28,10 +28,11 @@ type
 var
     miArchivo: text;
     biblioteca: tArchivoBiblioteca;
-    Aux: tLibro; //se usa como local en cada opcion
-    filtro_autor: string; 
-    opcion, posicion, cod_ingresante, libros_encontrados : integer;
-    
+    //Aux: tLibro; se usa como local en cada opcion
+   //filtro_autor: string; 
+    opcion: integer;
+    rutaBase, NOMBRE_CSV, NOMBRE_BIBLIOTECA, NOMBRE_EXPORTACION: string;
+    //posicion, cod_ingresante, libros_encontrados 
 
 //---------------------------------------------------------------------------------
 
@@ -62,12 +63,16 @@ end;
 
 function enteroEnRango(tope1, tope2: integer; msj: string): integer;
 var
-    n: integer;
+    texto: string;
+    n, codigo: integer;
 begin
     repeat
         writeln(msj);
-        readln(n);
-    until (n >= tope1) and (n <= tope2);
+        readln(texto);
+        val(texto, n, codigo);
+        if (codigo <> 0) or (n < tope1) or (n > tope2) then
+            writeln('Debe ingresar un numero entero entre ', tope1, ' y ', tope2);
+    until (codigo = 0) and (n >= tope1) and (n <= tope2);
     enteroEnRango := n;
 end;
 
@@ -80,12 +85,16 @@ function enteroPositivo(msg: string): integer;
     post: EnteroPositivo = e, e >= 0    
 *)
 var
-    numero: integer;
+    texto: string;
+    numero, codigo: integer;
 begin
     repeat
         writeln(msg);
-        readln(numero);
-    until numero >= 0;
+        readln(texto);
+        val(texto, numero, codigo);
+        if (codigo <> 0) or (numero < 0) then
+            writeln('Debe ingresar un numero entero positivo.');
+    until (codigo = 0) and (numero >= 0);
     enteroPositivo := numero;
 end;
 
@@ -153,12 +162,17 @@ function realPositivo(msg: string): real;
     post: EnteroPositivo = e, e >= 0    
 *)
 var 
+    texto: string;
     numero: real;
+    codigo: integer;
 begin
     repeat
         writeln(msg);
-        readln(numero);
-    until numero >= 0;
+        readln(texto);
+        val(texto, numero, codigo);
+        if (codigo <> 0) or (numero < 0) then
+            writeln('Debe ingresar un numero real positivo.');
+    until (codigo = 0) and (numero >= 0);
     realPositivo := numero;
 end;
 
@@ -166,9 +180,25 @@ end;
 //----------------------------------------------------------------------------
 
 function ingrese_cadena(msg:string): string;
+var
+    texto: string;
+    valido: boolean;
 begin
-    writeln(msg);
-    readln(ingrese_cadena);
+    repeat
+        writeln(msg);
+        readln(texto);
+        texto := trim(texto); //trim elimina espacios en blanco al inicio y al final
+        valido := (length(texto) > 0) and (pos(',', texto) = 0) and (pos('/', texto) = 0); //pos devuelve la posicion de un caracter en una cadena, si no lo encuentra devuelve 0
+        if length(texto) = 0 then
+        begin
+            writeln('Debe ingresar un texto, no puede estar vacio.');
+        end
+        else if (pos(',', texto) > 0) or (pos('/', texto) > 0) then
+        begin
+            writeln('El texto no puede contener comas ni barras diagonales.');
+        end;
+    until valido;
+    ingrese_cadena := texto;
 end;
 
 //----------------------------------------------------------------------------
@@ -178,14 +208,11 @@ var
     anio, mes, dia: integer;
 begin
     repeat
-        writeln(msg1);
-        readln(anio);
-        writeln(msg2);
-        readln(mes);
-        writeln(msg3);
-        readln(dia);
-        if not(esFechaValida(dia, mes, anio)) then
-            writeln('Ingrese una fecha valida.');
+        anio := enteroEnRango(1, 9999, msg1);
+        mes := enteroEnRango(1, 12, msg2);
+        dia := enteroEnRango(1, 31, msg3);
+        if not esFechaValida(dia, mes, anio) then
+            writeln('La fecha ingresada no es valida. Por favor, ingrese nuevamente.');
     until esFechaValida(dia, mes, anio);
     ingrese_fecha.dia := dia;
     ingrese_fecha.mes := mes;
@@ -255,13 +282,13 @@ begin
 end;
 
 //------------------------------------------------------------------------------
-
-function ValorNumerico (cad: string): integer;
 (*
+function ValorNumerico (cad: string): integer;
+
     que hace: recibe una cadena y si todos los caracteres de la misma son digitos del 0 al 9 entonces devuelve su valor numerico, si no devuelve -1
     pre:    cad = c
     post: valor numerico = v, v >= 0 si todos los caracteres de c son digitos del 0 al 9, sino v = -1
-*)
+
 const
     BASE = 10;
 var
@@ -289,7 +316,7 @@ begin
     until ((i > length(cad)) or (CodigoError = true));
     ValorNumerico := resultado;
 end;
-
+*) // se usa val() en su lugar
 //------------------------------------------------------------------------------
 
 procedure pedirCampo(var reg:tLibro; campo:integer);
@@ -301,11 +328,11 @@ procedure pedirCampo(var reg:tLibro; campo:integer);
 *)
 begin
     case campo of
-        1: reg.titulo := ingrese_cadena('ingrese el titulo');
-        2: reg.autor := ingrese_cadena('ingrese el autor');
-        3: reg.fechaPublicacion := ingrese_fecha('Ingrese el año', 'Ingrese el mes', 'Ingrese el dia');
-        4: reg.cantDisponible := EnteroPositivo('Ingrese la cantidad disponible');
-        5: reg.precio := RealPositivo('Ingrese el precio de reposicion');
+        1: reg.titulo := ingrese_cadena('Ingrese el titulo: ');
+        2: reg.autor := ingrese_cadena('Ingrese el autor: ');
+        3: reg.fechaPublicacion := ingrese_fecha('Ingrese el año: ', 'Ingrese el mes: ', 'Ingrese el dia: ');
+        4: reg.cantDisponible := EnteroPositivo('Ingrese la cantidad disponible: ');
+        5: reg.precio := RealPositivo('Ingrese el precio de reposicion: ');
     end 
 end;
 
@@ -480,8 +507,9 @@ begin
         writeln('6. Listar ejemplares por autor');
         writeln('7. Listar ejemplares dados de alta');
         writeln('8. Listar ejemplares dados de baja');
+        writeln('9. Exportar a CSV');
         writeln('0. Salir');
-        opcion := enteroEnRango(0, 8, 'Seleccione la opcion que desea llevar a cabo');
+        opcion := enteroEnRango(0, 9, 'Seleccione la opcion que desea llevar a cabo');
 end;
 
 //------------------------------------------------------------------------
@@ -494,12 +522,12 @@ procedure mostrarRegistro(reg: tLibro);
 *)
 begin
     writeln('===============================================');
-    writeln('Código: ', reg.codigo);
-    writeln('Título: ', reg.titulo);
+    writeln('Codigo: ', reg.codigo);
+    writeln('Titulo: ', reg.titulo);
     writeln('Autor: ', reg.autor);
     writeln('Fecha Publicacion: ', reg.fechaPublicacion.dia, '/', reg.fechaPublicacion.mes, '/', reg.fechaPublicacion.anio);
     writeln('Cant. Disponible: ', reg.cantDisponible);
-    writeln('Precio: ', reg.precio);
+    writeln('Precio: ', reg.precio:0:2);
     if reg.disponible then
     begin
         writeln('Estado: ALTA (Disponible)');
@@ -513,16 +541,18 @@ end;
 
 //------------------------------------------------------------------------
 
-//procedure opcionIngresar(var biblioteca: tArchivoBiblioteca);
+procedure opcionIngresar(var biblioteca: tArchivoBiblioteca);
 (*
     que hace: pide un codigo y, si no esta registrado (ni de alta ni de baja), pide el resto de los datos y lo ingresa
     pre: biblioteca = b, cerrado
     post: biblioteca = b', con un ejemplar mas si el codigo no estaba en b; sino b' = b
-
+*)
 var
-    cod, pos: integer;
+    cod_ingresante, posicion: integer;
     aux: tLibro;
 begin
+    clrscr();
+    assign(biblioteca, RUTA_BIBLIOTECA);
     reset(biblioteca);
     cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea ingresar'); //devuelve un positivo sin tener una cota superior
     posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
@@ -530,75 +560,238 @@ begin
     begin
         ingresoNuevoLibro(biblioteca, cod_ingresante); //pedira todo lo necesario para ingresar un nuevo libro
     end
-        else
+    else
+    begin
+        writeln('Ese codigo ya esta registrado');
+        if (confirma('¿Desea editar el libro asociado a ese codigo?')) then
         begin
-            writeln('Ese codigo ya esta registrado');
-            if (confirma('¿Desea editar el libro asociado a ese codigo?')) then
+            seek(biblioteca, posicion);
+            read(biblioteca, aux);
+            if aux.disponible then
             begin
+                editarRegistro(aux); // a prori el cabezal ya esta posicionado en donde debe modificar
                 seek(biblioteca, posicion);
-                read(biblioteca, Aux);
-                if Aux.disponible then
-                begin
-                    editarRegistro(Aux); // a prori el cabezal ya esta posicionado en donde debe modificar
-                    seek(biblioteca, posicion);
-                    write(biblioteca, Aux);
-                end
-            end;
+                write(biblioteca, aux);
+            end
+            else
+                writeln('El libro se encuentra dado de baja, no puede ser modificado');
         end;
+    end;
     close(biblioteca);
-*)
-                
+end;          
 
 //------------------------------------------------------------------------
 
-//rocedure opcionModificar(var biblioteca: tArchivoBiblioteca);
+procedure opcionModificar(var biblioteca: tArchivoBiblioteca);
 (*
     que hace: pide un codigo y, si el ejemplar existe y esta de alta, permite modificar sus datos (menos el codigo)
     pre: biblioteca = b, cerrado
     post: biblioteca = b'; solo cambia el registro elegido, y solo si estaba de alta
 *)
-
+var
+    cod_ingresante, posicion: integer;
+    aux: tLibro;
+begin
+    clrscr();
+    assign(biblioteca, RUTA_BIBLIOTECA);
+    reset(biblioteca);
+    cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea modificar');
+    posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
+    if posicion <> -1 then
+    begin
+        seek(biblioteca, posicion);
+        read(biblioteca, aux);
+        if aux.disponible then 
+        begin
+            editarRegistro(aux);
+            seek(biblioteca, posicion);
+            write(biblioteca, aux);
+        end
+        else
+            writeln('El libro se encuentra dado de baja, no puede ser modificado');
+    end
+    else
+        writeln('El libro no se encuentra registrado');
+    close(biblioteca);
+end;
 //------------------------------------------------------------------------
 
-//procedure cambiarEstado(var biblioteca: tArchivoBiblioteca);
+procedure cambiarEstado(var biblioteca: tArchivoBiblioteca; activar: boolean);
 (*
     que hace: da de alta (activar = verdadero) o de baja (activar = falso) un ejemplar existente
     pre: biblioteca = b, cerrado; activar = a
     post: biblioteca = b'; si el codigo existe y su estado era distinto de a, ahora disponible = a; sino b' = b
 *)
-
+var
+    cod_ingresante, posicion: integer;
+    aux: tLibro;
+begin   
+    clrscr();
+    assign(biblioteca, RUTA_BIBLIOTECA);
+    reset(biblioteca);
+    cod_ingresante := enteroPositivo('Ingrese el codigo del libro que desea dar de baja:');
+    posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
+    if posicion <> -1 then
+    begin
+        seek(biblioteca, posicion);
+        read(biblioteca, aux);
+        if activar then
+        begin
+            aux.disponible := true;
+            seek(biblioteca, posicion);
+            write(biblioteca, aux);
+            writeln('Dado de alta exitosamente.');
+        end
+        else 
+        begin
+            aux.disponible := false;
+            seek(biblioteca, posicion);
+            write(biblioteca, aux);
+            writeln('Dado de baja exitosamente.');
+        end
+    end
+    else
+        writeln('El libro no se encuentra registrado');
+    close(biblioteca);
+end;
 //------------------------------------------------------------------------
 
-//procedure opcionMostrar(var biblioteca: tArchivoBiblioteca);
+procedure opcionMostrar(var biblioteca: tArchivoBiblioteca);
 (*
     que hace: pide un codigo y muestra el ejemplar, este de alta o de baja
     pre: biblioteca = b, cerrado
     post: biblioteca = b' = b
 *)
+var
+    cod_ingresante, posicion: integer;
+    aux: tLibro;
+begin
+    clrscr();
+    assign(biblioteca, RUTA_BIBLIOTECA);
+    reset(biblioteca);
+    cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea ver');
+    posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
+    if posicion <> -1 then
+    begin
+        seek(biblioteca, posicion);
+        read(biblioteca, aux);
+        mostrarRegistro(aux);
+    end
+    else
+        writeln('El libro no se encuentra registrado');
+    close(biblioteca);
+end;
+
 
 //------------------------------------------------------------------------
 
-//procedure listarPorAutor(var biblioteca:tArchivoBiblioteca; alta: boolean);
+procedure listarPorAutor(var biblioteca:tArchivoBiblioteca);
 (*
     que hace: pide un autor y muestra los ejemplares dados de alta de ese autor
     pre: biblioteca = b, cerrado
     post: biblioteca = b' = b
 *)
+var
+    autor: string;
+    libros_encontrados: integer;
+    aux: tLibro;
+begin
+    clrscr();
+    assign(biblioteca, RUTA_BIBLIOTECA);
+    reset(biblioteca);
+    libros_encontrados := 0;
+    autor := ingrese_cadena('Ingrese el autor que desea buscar');
+    seek(biblioteca, 0);
+    while not(eof(biblioteca)) do
+    begin
+        read(biblioteca, aux);
+        if lowercase(aux.autor) = lowercase(autor) then
+        begin
+            mostrarRegistro(aux);
+            libros_encontrados := libros_encontrados + 1;
+        end;
+    end;
+    if libros_encontrados = 0 then
+    begin
+        writeln('No se encontraron libros registrados de ese autor');
+    end;
+    close(biblioteca);
+end;
 
 //------------------------------------------------------------------------
 
-//procedure listarPorEstado(var biblioteca:tArchivoBiblioteca; baja: Boolean);
+procedure listarPorEstado(var biblioteca:tArchivoBiblioteca; alta: boolean);
 (*
     que hace: muestra los ejemplares dados de alta (alta = verdadero) o de baja (alta = falso)
     pre: biblioteca = b, cerrado; alta = a
     post: biblioteca = b' = b
 *)
-
+var
+    libros_encontrados: integer;
+    aux: tLibro;
+    estado: string;
+begin
+    if alta then
+        estado := 'alta'
+    else
+        estado := 'baja';
+    clrscr();
+    assign(biblioteca, RUTA_BIBLIOTECA);
+    reset(biblioteca);
+    seek(biblioteca, 0);
+    libros_encontrados := 0;
+    while not(eof(biblioteca)) do
+    begin
+        read(biblioteca, aux);
+        if aux.disponible = alta then
+        begin
+            mostrarRegistro(aux);
+            libros_encontrados := libros_encontrados + 1;
+        end;
+    end;
+    if libros_encontrados = 0 then
+    begin
+        writeln('No se encontraron libros registrados que esten dados de ', estado);
+    end;
+    close(biblioteca);
+end;
 //------------------------------------------------------------------------
 
+procedure exportarCSV(var biblioteca: tArchivoBiblioteca; var biblioteca_exportada: text);
+(*
+    que hace: Exporta los datos de la biblioteca a un archivo de texto
+    pre: biblioteca = b, biblioteca debe venir abierto
+    post: Biblioteca_Exportada = be
+*)
+var                
+    aux_registro: tLibro;
+    estado: string;
+begin   
+    assign(biblioteca, RUTA_BIBLIOTECA);
+    reset(biblioteca);
+    seek(biblioteca, 0);
 
-
-
+    assign(biblioteca_exportada, RUTA_EXPORTACION);
+    rewrite(biblioteca_exportada); 
+    writeln(Biblioteca_Exportada, 'Codigo, Titulo, Autor, FechaPublicacion, CantDisponible, Precio, Disponible');                 
+    while not(eof(biblioteca)) do
+    begin
+        read(biblioteca, aux_registro);
+        if aux_registro.disponible then
+            estado := 'TRUE'
+        else
+            estado := 'FALSE';
+        writeln(Biblioteca_Exportada,
+                aux_registro.codigo, ',', aux_registro.titulo, ',', aux_registro.autor, ',',
+                aux_registro.fechaPublicacion.dia, '/', aux_registro.fechaPublicacion.mes, '/',
+                aux_registro.fechaPublicacion.anio, ',',
+                aux_registro.cantDisponible, ',', aux_registro.precio:0:2, ',', estado);
+              //concat creo solo une cadenas: no acepta integer, real ni boolean
+    end;
+    close(biblioteca_exportada);
+    close(biblioteca);
+    writeln('Exportacion a CSV realizada con exito. Archivo generado: ', RUTA_EXPORTACION);
+end;
 //------------------------------------------------------------------------
 
 procedure importar(var miArchivo: text; var biblioteca: tArchivoBiblioteca);
@@ -630,7 +823,7 @@ begin
         aux_cadena := ArmarCampo(miArchivo);          // <<  precio_reposicion
         val(aux_cadena, aux_registro.precio, code);   //    val también funciona para reales 
 
-        aux_registro.disponible := (uppercase(ArmarCampo(miArchivo)) = 'TRUE');
+        aux_registro.disponible := uppercase(ArmarCampo(miArchivo)) = 'TRUE';
 
         posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, aux_registro.codigo);
         if posicion = -1 then
@@ -642,12 +835,20 @@ begin
     end;
     if registrados > 0 then
         writeln('Cantidad de ejemplares omitidos por repeticion de codigo: ', registrados);
-        
+
 end;
 
 //---------------------------------------------------------------------------------
 
 begin
+    rutaBase := ExtractFilePath(ParamStr(0));
+    NOMBRE_CSV := rutaBase + CSV;
+    NOMBRE_BIBLIOTECA := rutaBase + RUTA_BIBLIOTECA;
+    NOMBRE_EXPORTACION := rutaBase + RUTA_EXPORTACION;
+
+    // (Opcional, para comprobar desde donde lo ejecuta Dev-Pascal)
+    writeln('Directorio actual: ', GetCurrentDir);
+    writeln('Carpeta del EXE:   ', rutaBase);
 
     if FileExists(CSV) then
     begin
@@ -657,193 +858,28 @@ begin
             rewrite(biblioteca);  
         end
         else
-        begin
             assign(biblioteca, RUTA_BIBLIOTECA);
             reset(biblioteca);
-        end;
         assign(miArchivo, CSV); 
         reset(miArchivo);
-        importar(miArchivo, biblioteca); // importar(fuente, destino)     
+        importar(miArchivo, biblioteca); // importar(fuente, destino)
+        close(miArchivo);
+        close(biblioteca);
     end;
-    close(miArchivo);     
-    close(biblioteca);
     repeat
         MostrarMenu(opcion); 
         case opcion of
-            1: //opcion de ingresar
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea ingresar'); //devuelve un positivo sin tener una cota superior
-                posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
-                if posicion = -1 then
-                begin
-                    ingresoNuevoLibro(biblioteca, cod_ingresante); //pedira todo lo necesario para ingresar un nuevo libro
-                end
-                    else
-                    begin
-                        writeln('Ese codigo ya esta registrado');
-                        if (confirma('¿Desea editar el libro asociado a ese codigo?')) then
-                        begin
-                            seek(biblioteca, posicion);
-                            read(biblioteca, Aux);
-                            if Aux.disponible then
-                            begin
-                                editarRegistro(Aux); // a prori el cabezal ya esta posicionado en donde debe modificar
-                                seek(biblioteca, posicion);
-                                write(biblioteca, Aux);
-                            end
-                        end;
-                    end;
-                close(biblioteca);
-            end;
-            2: //opcion de modificar
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea modificar');
-                posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
-                if posicion <> -1 then
-                begin
-                    seek(biblioteca, posicion);
-                    read(biblioteca, Aux);
-                    if Aux.disponible then 
-                    begin
-                        editarRegistro(Aux);
-                        seek(biblioteca, posicion);
-                        write(biblioteca, Aux);
-                    end;
-                end;
-                close(biblioteca);
-            end;
-            3: //opcion de eliminar
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea dar de baja');
-                posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
-                if posicion <> -1 then
-                begin
-                    seek(biblioteca, posicion);
-                    read(biblioteca, Aux);
-                    if Aux.disponible then
-                    begin
-                        Aux.disponible := false;
-                        seek(biblioteca, posicion);
-                        write(biblioteca, Aux);
-                        writeln('Dado de baja exitosamente.');
-                    end
-                        else
-                            writeln('El libro ya se encuentra dado de baja');
-                end
-                    else
-                        writeln('El libro no se encuentra registrado');
-                close(biblioteca);
-            end;
-            4: //opcion de activar ejemplar
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea dar de alta');
-                posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
-                if posicion <> -1 then
-                begin
-                    seek(biblioteca, posicion);
-                    read(biblioteca, Aux);
-                    if not(Aux.disponible) then
-                    begin
-                        Aux.disponible := true;
-                        seek(biblioteca, posicion);
-                        write(biblioteca, Aux);
-                    end
-                        else
-                            writeln('El libro ya esta dado de alta');
-                end
-                    else
-                        writeln('El libro no se encuentra registrado');
-                close(biblioteca);
-            end;
-            5: //mostrar ejemplar
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                cod_ingresante := enteroPositivo('ingrese el codigo del libro que desea ver');
-                posicion := buscar(biblioteca, 0, filesize(biblioteca) - 1, cod_ingresante);
-                if posicion <> -1 then
-                begin
-                    seek(biblioteca, posicion);
-                    read(biblioteca, Aux);
-                    mostrarRegistro(Aux);
-                end
-                    else
-                        writeln('El libro no se encuentra registrado');
-                close(biblioteca);
-            end;
-            6: //muestra libros por autor
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                writeln('ingrese el nombre del autor por el cual se debe filtrar');
-                readln(filtro_autor);
-                seek(biblioteca, 0);
-                libros_encontrados := 0;
-                while not(eof(biblioteca)) do
-                begin
-                    read(biblioteca, Aux);
-                    if Aux.autor = filtro_autor then
-                    begin
-                        mostrarRegistro(Aux);
-                        libros_encontrados := libros_encontrados + 1;
-                    end;
-                end;
-                if libros_encontrados = 0 then
-                begin
-                    writeln('No se encontraron libros registrados de ese autor');
-                end;
-                close(biblioteca);
-            end;
-            7: //muestra llibros dados de alta
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                seek(biblioteca, 0);
-                libros_encontrados := 0;
-                while not(eof(biblioteca)) do
-                begin
-                    read(biblioteca, Aux);
-                    if Aux.disponible then
-                    begin
-                        mostrarRegistro(Aux);
-                        libros_encontrados := libros_encontrados + 1;
-                    end;
-                end;
-                if libros_encontrados = 0 then
-                begin
-                    writeln('No se encontraron libros registrados que esten dados de alta');
-                end;
-                close(biblioteca);
-            end;
-            8:
-            begin
-                assign(biblioteca, RUTA_BIBLIOTECA);
-                reset(biblioteca);
-                seek(biblioteca, 0);
-                libros_encontrados := 0;
-                while not(eof(biblioteca)) do
-                begin
-                    read(biblioteca, Aux);
-                    if not(Aux.disponible) then
-                    begin
-                        mostrarRegistro(Aux);
-                        libros_encontrados := libros_encontrados + 1;
-                    end;
-                end;
-                if libros_encontrados = 0 then
-                begin
-                    writeln('No se encontraron libros registrados que esten dados de baja');
-                end;
-                close(biblioteca);
-            end;
+            1: opcionIngresar(biblioteca);
+            2: opcionModificar(biblioteca);
+            3: cambiarEstado(biblioteca, False);  //opcion de eliminar          
+            4: cambiarEstado(biblioteca, True);  //opcion de activar ejemplar
+            5: opcionMostrar(biblioteca);  //opcion de mostrar ejemplar          
+            6: listarPorAutor(biblioteca);  //opcion de listar por autor
+            7: listarPorEstado(biblioteca, True);  //opcion de listar por dados de alta
+            8: listarPorEstado(biblioteca, False);  //opcion de listar por dados de baja
+            9: exportarCSV(biblioteca, miArchivo);  //opcion de exportar a CSV
         end;
     until opcion = 0;
+    //writeln('Presione ENTER para salir...');
+    //readln;
 end.
